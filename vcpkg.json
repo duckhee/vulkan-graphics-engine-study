@@ -1,0 +1,17 @@
+
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "claude-vulkan",
+  "version": "0.1.0",
+  "description": "Vulkan Ray Tracing Learning Project",
+  "dependencies": [
+    "glfw3",
+    {
+      "name": "imgui",
+      "features": [
+        "glfw-binding"
+      ]
+    },
+    "glm"
+  ]
+}

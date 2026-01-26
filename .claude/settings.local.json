@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmake --build:*)",
+      "Bash(./build/chapter01)",
+      "Bash(pkill:*)",
+      "Bash(glslangValidator:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(tree:*)",
+      "Bash(cmake:*)",
+      "Bash(./chapter01)",
+      "Bash(xargs cat:*)",
+      "Bash(for dir in */)",
+      "Bash(do mkdir -p \"$dir/shaders\")",
+      "Bash(done)"
+    ]
+  }
+}

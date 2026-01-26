@@ -1,0 +1,110 @@
+#version 450
+
+// Particle structure
+struct Particle {
+    vec4 position;   // xyz = position, w = lifetime
+    vec4 velocity;   // xyz = velocity, w = mass
+    vec4 color;      // rgba
+};
+
+// Storage buffer for particles
+layout(std430, binding = 0) buffer ParticleBuffer {
+    Particle particles[];
+};
+
+// Uniform buffer for simulation parameters
+layout(binding = 1) uniform SimParams {
+    float deltaTime;
+    float gravity;
+    float damping;
+    float particleCount;
+    vec4 emitterPos;     // xyz = position, w = emit rate
+    vec4 emitterRange;   // xyz = range, w = initial speed
+    float time;
+    float respawnEnabled;
+    float attractorStrength;
+    float pad;
+} params;
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// Simple random function
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+
+    // Bounds check
+    if (index >= uint(params.particleCount)) {
+        return;
+    }
+
+    Particle p = particles[index];
+
+    // Update lifetime
+    p.position.w -= params.deltaTime;
+
+    // Check if particle needs respawning
+    if (p.position.w <= 0.0 && params.respawnEnabled > 0.5) {
+        // Reset particle at emitter position with random offset
+        float seed = float(index) + params.time;
+        float rx = random(vec2(seed, 0.0)) * 2.0 - 1.0;
+        float ry = random(vec2(seed, 1.0)) * 2.0 - 1.0;
+        float rz = random(vec2(seed, 2.0)) * 2.0 - 1.0;
+
+        p.position.xyz = params.emitterPos.xyz + vec3(rx, ry, rz) * params.emitterRange.xyz;
+        p.position.w = 2.0 + random(vec2(seed, 3.0)) * 2.0;  // Lifetime 2-4 seconds
+
+        // Random initial velocity (upward cone)
+        float angle = random(vec2(seed, 4.0)) * 6.28318;
+        float spread = random(vec2(seed, 5.0)) * 0.5;
+        float speed = params.emitterRange.w * (0.5 + random(vec2(seed, 6.0)) * 0.5);
+
+        p.velocity.xyz = vec3(
+            cos(angle) * spread * speed,
+            speed,
+            sin(angle) * spread * speed
+        );
+        p.velocity.w = 0.5 + random(vec2(seed, 7.0)) * 0.5;  // Mass 0.5-1.0
+
+        // Random color (warm colors)
+        p.color = vec4(
+            0.8 + random(vec2(seed, 8.0)) * 0.2,
+            0.3 + random(vec2(seed, 9.0)) * 0.5,
+            random(vec2(seed, 10.0)) * 0.3,
+            1.0
+        );
+    } else {
+        // Apply gravity
+        p.velocity.y -= params.gravity * params.deltaTime;
+
+        // Apply attractor (toward center)
+        if (params.attractorStrength > 0.001) {
+            vec3 toCenter = -p.position.xyz;
+            float dist = length(toCenter) + 0.1;
+            vec3 attractForce = normalize(toCenter) * params.attractorStrength / (dist * dist);
+            p.velocity.xyz += attractForce * params.deltaTime;
+        }
+
+        // Apply damping
+        p.velocity.xyz *= (1.0 - params.damping * params.deltaTime);
+
+        // Update position
+        p.position.xyz += p.velocity.xyz * params.deltaTime;
+
+        // Simple floor collision
+        if (p.position.y < -2.0) {
+            p.position.y = -2.0;
+            p.velocity.y = -p.velocity.y * 0.5;  // Bounce with energy loss
+        }
+
+        // Fade color based on lifetime
+        float lifeFade = clamp(p.position.w / 2.0, 0.0, 1.0);
+        p.color.a = lifeFade;
+    }
+
+    // Write back
+    particles[index] = p;
+}
