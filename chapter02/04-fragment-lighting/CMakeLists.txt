@@ -23,7 +23,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 # ImGui Vulkan 백엔드 (common 폴더에서)
 target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/common/imgui_impl_vulkan.cpp
-    ${CMAKE_SOURCE_DIR}/common/imgui_impl_glfw.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

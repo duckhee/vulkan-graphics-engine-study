@@ -1,0 +1,185 @@
+#version 450
+
+// Compute shader for image filtering
+// 다양한 이미지 필터를 GPU에서 병렬 처리
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+// Input image (read-only)
+layout(binding = 0, rgba8) uniform readonly image2D inputImage;
+
+// Output image (write-only)
+layout(binding = 1, rgba8) uniform writeonly image2D outputImage;
+
+// Filter parameters
+layout(binding = 2) uniform FilterParams {
+    int filterType;      // 0=None, 1=Blur, 2=Sharpen, 3=Edge, 4=Emboss, 5=Grayscale, 6=Invert, 7=Sepia
+    float intensity;     // Filter strength
+    float param1;        // Extra parameter
+    float param2;        // Extra parameter
+} params;
+
+// Blur kernel (3x3 Gaussian approximation)
+const float blurKernel[9] = float[](
+    1.0/16.0, 2.0/16.0, 1.0/16.0,
+    2.0/16.0, 4.0/16.0, 2.0/16.0,
+    1.0/16.0, 2.0/16.0, 1.0/16.0
+);
+
+// Sharpen kernel
+const float sharpenKernel[9] = float[](
+     0.0, -1.0,  0.0,
+    -1.0,  5.0, -1.0,
+     0.0, -1.0,  0.0
+);
+
+// Edge detection (Sobel X)
+const float sobelX[9] = float[](
+    -1.0, 0.0, 1.0,
+    -2.0, 0.0, 2.0,
+    -1.0, 0.0, 1.0
+);
+
+// Edge detection (Sobel Y)
+const float sobelY[9] = float[](
+    -1.0, -2.0, -1.0,
+     0.0,  0.0,  0.0,
+     1.0,  2.0,  1.0
+);
+
+// Emboss kernel
+const float embossKernel[9] = float[](
+    -2.0, -1.0, 0.0,
+    -1.0,  1.0, 1.0,
+     0.0,  1.0, 2.0
+);
+
+vec4 sampleImage(ivec2 coord) {
+    ivec2 imgSize = imageSize(inputImage);
+    // Clamp to image bounds
+    coord = clamp(coord, ivec2(0), imgSize - 1);
+    return imageLoad(inputImage, coord);
+}
+
+vec4 applyKernel(ivec2 coord, float kernel[9]) {
+    vec4 result = vec4(0.0);
+
+    int idx = 0;
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            result += sampleImage(coord + ivec2(x, y)) * kernel[idx];
+            idx++;
+        }
+    }
+
+    return result;
+}
+
+vec4 applyBlur(ivec2 coord) {
+    return applyKernel(coord, blurKernel);
+}
+
+vec4 applySharpen(ivec2 coord) {
+    vec4 original = sampleImage(coord);
+    vec4 sharpened = applyKernel(coord, sharpenKernel);
+    return mix(original, sharpened, params.intensity);
+}
+
+vec4 applyEdgeDetection(ivec2 coord) {
+    vec4 gx = applyKernel(coord, sobelX);
+    vec4 gy = applyKernel(coord, sobelY);
+    vec4 edge = sqrt(gx * gx + gy * gy);
+    edge.a = 1.0;
+    return edge * params.intensity;
+}
+
+vec4 applyEmboss(ivec2 coord) {
+    vec4 embossed = applyKernel(coord, embossKernel);
+    embossed = embossed * 0.5 + 0.5;  // Normalize to 0-1 range
+    embossed.a = 1.0;
+    return mix(sampleImage(coord), embossed, params.intensity);
+}
+
+vec4 applyGrayscale(ivec2 coord) {
+    vec4 color = sampleImage(coord);
+    float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+    return mix(color, vec4(gray, gray, gray, color.a), params.intensity);
+}
+
+vec4 applyInvert(ivec2 coord) {
+    vec4 color = sampleImage(coord);
+    vec4 inverted = vec4(1.0 - color.rgb, color.a);
+    return mix(color, inverted, params.intensity);
+}
+
+vec4 applySepia(ivec2 coord) {
+    vec4 color = sampleImage(coord);
+
+    float r = color.r * 0.393 + color.g * 0.769 + color.b * 0.189;
+    float g = color.r * 0.349 + color.g * 0.686 + color.b * 0.168;
+    float b = color.r * 0.272 + color.g * 0.534 + color.b * 0.131;
+
+    vec4 sepia = vec4(r, g, b, color.a);
+    return mix(color, sepia, params.intensity);
+}
+
+// Vignette effect
+vec4 applyVignette(vec4 color, ivec2 coord, ivec2 size) {
+    vec2 uv = vec2(coord) / vec2(size);
+    vec2 center = vec2(0.5);
+    float dist = distance(uv, center);
+    float vignette = 1.0 - smoothstep(0.3, 0.8, dist);
+    return vec4(color.rgb * vignette, color.a);
+}
+
+void main() {
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 imgSize = imageSize(inputImage);
+
+    // Check bounds
+    if (coord.x >= imgSize.x || coord.y >= imgSize.y) {
+        return;
+    }
+
+    vec4 result;
+
+    switch (params.filterType) {
+        case 0:  // None - passthrough
+            result = sampleImage(coord);
+            break;
+        case 1:  // Blur
+            result = applyBlur(coord);
+            break;
+        case 2:  // Sharpen
+            result = applySharpen(coord);
+            break;
+        case 3:  // Edge Detection
+            result = applyEdgeDetection(coord);
+            break;
+        case 4:  // Emboss
+            result = applyEmboss(coord);
+            break;
+        case 5:  // Grayscale
+            result = applyGrayscale(coord);
+            break;
+        case 6:  // Invert
+            result = applyInvert(coord);
+            break;
+        case 7:  // Sepia
+            result = applySepia(coord);
+            break;
+        default:
+            result = sampleImage(coord);
+            break;
+    }
+
+    // Optional vignette
+    if (params.param1 > 0.0) {
+        result = applyVignette(result, coord, imgSize);
+    }
+
+    // Clamp output
+    result = clamp(result, 0.0, 1.0);
+
+    imageStore(outputImage, coord, result);
+}

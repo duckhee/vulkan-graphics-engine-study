@@ -8,18 +8,14 @@ find_package(imgui CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 
-# ImGui GLFW 백엔드 경로
-get_target_property(IMGUI_INCLUDE_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
-
 add_executable(${PROJECT_NAME}
     main.cpp
     # ImGui 백엔드
-    ${IMGUI_INCLUDE_DIRS}/../src/imgui_impl_glfw.cpp
-    ${IMGUI_INCLUDE_DIRS}/../src/imgui_impl_vulkan.cpp
+    ${CMAKE_SOURCE_DIR}/common/imgui_impl_vulkan.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${IMGUI_INCLUDE_DIRS}/../src
+    ${CMAKE_SOURCE_DIR}/common
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
