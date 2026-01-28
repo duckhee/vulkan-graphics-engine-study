@@ -1,6 +1,11 @@
-# Chapter 03: Shader Programming Examples
+# Chapter 02: Shader Programming Examples
+#
+# ShaderExampleBase를 사용하면 각 예제가 셰이더 로직에만 집중할 수 있습니다.
 
-# Add all subdirectories
+# 공통 라이브러리
+add_subdirectory(common)
+
+# 개별 예제들
 add_subdirectory(01-vertex-animation)
 add_subdirectory(02-fragment-gradients)
 add_subdirectory(03-fragment-textures)

@@ -1,5 +1,6 @@
 # Chapter 02-01: Vertex Animation
 # Push Constants를 사용한 Vertex Shader 애니메이션
+# ShaderExampleBase를 상속하여 보일러플레이트 코드 제거
 
 project(chapter0201VertexAnimation)
 
@@ -7,21 +8,10 @@ add_executable(${PROJECT_NAME}
     main.cpp
 )
 
-# Link libraries
+# ch02_common 라이브러리 링크 (ShaderExampleBase 포함)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Vulkan::Vulkan
-    glfw
-    imgui::imgui
+    ch02_common
     glm::glm
-)
-
-# Include ImGui Vulkan backend from common
-target_sources(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/common/imgui_impl_vulkan.cpp
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/common
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

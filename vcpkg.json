@@ -1,4 +1,3 @@
-
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "claude-vulkan",
@@ -8,9 +7,7 @@
     "glfw3",
     {
       "name": "imgui",
-      "features": [
-        "glfw-binding"
-      ]
+      "features": ["glfw-binding"]
     },
     "glm"
   ]

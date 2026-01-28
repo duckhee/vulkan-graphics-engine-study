@@ -1,5 +1,6 @@
 # Chapter 02-02: Fragment Gradients
 # Fragment Shader에서 다양한 그라데이션 효과 구현
+# ShaderExampleBase를 상속하여 보일러플레이트 코드 제거
 
 project(chapter0202FragmentGradients)
 
@@ -7,19 +8,10 @@ add_executable(${PROJECT_NAME}
     main.cpp
 )
 
+# ch02_common 라이브러리 링크 (ShaderExampleBase 포함)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Vulkan::Vulkan
-    glfw
-    imgui::imgui
+    ch02_common
     glm::glm
-)
-
-target_sources(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/common/imgui_impl_vulkan.cpp
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/common
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -27,6 +19,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/chapter02/02-fragment-gradients"
 )
 
+# Copy shaders to build directory
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
         ${CMAKE_BINARY_DIR}/chapter02/02-fragment-gradients/shaders

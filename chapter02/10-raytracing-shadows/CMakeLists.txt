@@ -1,40 +1,18 @@
 # Chapter 02-10: Ray Tracing Shadows (Software Ray Tracer)
 # 소프트웨어 레이 트레이서 - Compute Shader 기반
 
-cmake_minimum_required(VERSION 3.20)
 project(chapter0210RayTracingShadows)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Find required packages
-find_package(Vulkan REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
-find_package(glm CONFIG REQUIRED)
-find_package(imgui CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME}
     main.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${Vulkan_INCLUDE_DIRS}
-)
-
+# vk_common 링크 (imgui_impl_vulkan 포함)
 target_link_libraries(${PROJECT_NAME} PRIVATE
+    vk_common
     Vulkan::Vulkan
-    glfw
     glm::glm
-    imgui::imgui
 )
-
-# Platform-specific settings
-if(APPLE)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        VK_USE_PLATFORM_MACOS_MVK
-        VK_ENABLE_BETA_EXTENSIONS
-    )
-endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "ch02-10"

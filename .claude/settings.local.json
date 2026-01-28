@@ -14,7 +14,9 @@
       "Bash(xargs cat:*)",
       "Bash(for dir in */)",
       "Bash(do mkdir -p \"$dir/shaders\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(for:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && head -15 {}')"
     ]
   }
 }
